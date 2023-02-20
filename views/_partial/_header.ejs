@@ -52,24 +52,28 @@
         }
         */
 
-        .content{ 
-            padding-top: 10px;
-            padding-left: 15px;
-            padding-right: 15px;
+         .content{ 
+            padding: 2vmin;
+            overflow: hidden;
             text-align: center;
-            position: relative;
+            position: fixed;
             color: rgb(255, 255, 255);
             transform: translate(55%);
-            width: 600px;
-            min-height: 350px;
+            min-height: 40%;
+            height: fit-content;
+            width: 40%;
+            left: 50%;
+            top: 50%;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            border-radius: .25em;
             box-shadow: 0 5px 40px rgba(255, 255, 255, 0.1);
+            box-sizing: border-box;
             border-right: 1px solid rgba(255, 255, 255, 0.2);
             border-left: 1px solid rgba(255, 255, 255, 0.2);
             z-index: 10;
             backdrop-filter: blur(13px);
-            font-family: 'Recursive', sans-serif;           
+            font-family: 'Recursive', sans-serif;     
+            transform: translate(-50%, -50%);      
             
         }
         .logo{
