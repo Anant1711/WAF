@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CyberV</title>
+    <!--credit for animation background: Sliding Diagonals Background Effect; Chris Smith; https://codepen.io/chris22smith/pen/RZogMa-->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Recursive:wght@500&display=swap');
+        html {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        .bg {
+            animation: slide 9s ease-in-out infinite alternate;
+            background-image: linear-gradient(-60deg, rgb(0, 0, 0) 50%, rgb(123, 0, 255) 50%);
+            bottom: 0;
+            left: -50%;
+            opacity: .5;
+            position: fixed;
+            right: -50%;
+            top: 0;
+            z-index: -1;
+        }
+
+        .bg2 {
+            animation-direction: alternate-reverse;
+            animation-duration: 7.5s;
+        }
+
+        .bg3 {
+            animation-duration: 8s;
+        }
+
+        /*
+        .content {
+            background-color: rgba(225, 213, 156, 0.299);
+            border-radius: .25em;
+            box-shadow: 0 0 .25em rgba(12, 11, 11, 0.863);
+            box-sizing: border-box;
+            left: 50%;
+            position: fixed;
+            text-align: center;
+            top: 50%;
+            font-size: 2em;
+            font-family: 'Century Gothic, CenturyGothic, AppleGothic, sans-serif';
+            transform: translate(-50%, -55%);
+        }
+        */
+
+        .content{ 
+            padding-top: 10px;
+            padding-left: 15px;
+            padding-right: 15px;
+            text-align: center;
+            position: relative;
+            color: rgb(255, 255, 255);
+            transform: translate(55%);
+            width: 600px;
+            min-height: 350px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 5px 40px rgba(255, 255, 255, 0.1);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            border-left: 1px solid rgba(255, 255, 255, 0.2);
+            z-index: 10;
+            backdrop-filter: blur(13px);
+            font-family: 'Recursive', sans-serif;           
+            
+        }
+        .logo{
+            text-align: left;
+            padding-left: 29px;
+            font-size: 1.7em;
+            font-family: 'Kanit', sans-serif;
+            font-family: 'Noto Sans JP', sans-serif;
+            color: rgb(255, 255, 255);
+        }
+
+        h1 {
+            font-family: 'Recursive', sans-serif;
+            font-weight: 500;
+            font-size: 2.5em;
+        }
+
+        @keyframes slide {
+            0% {
+                transform: translateX(-25%);
+            }
+
+            100% {
+                transform: translateX(25%);
+            }
+        }
+
+        footer {
+            width: 100%;
+            height: 11vh;
+            color: antiquewhite;
+            position: absolute;
+            bottom: 0px;
+            left: 0px;
+            text-align: center;
+            font-size: 1.5em;
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg"></div>
+    <div class="bg bg2"></div>
+    <div class="bg bg3"></div>
+    <div class="logo">
+        <h3>CyberV</h3>
+    </div>
+    <div class="content">
