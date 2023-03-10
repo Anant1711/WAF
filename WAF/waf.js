@@ -9,6 +9,12 @@ const path = require('path');
 const morgan = require('morgan');
 const httpProxy = require('http-proxy');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const moment = require ('moment');
+var requestIp = require('request-ip');
+const port = process.env.PORT || 3001;
+
+// --------- Logging Section --------- 
+// Incase you are deploying for API try to comment this section
 
 // Define the path to the logs directory
 const logDirectory = path.join(__dirname, 'logs');
@@ -25,6 +31,7 @@ const accessLogStream = fs.createWriteStream(
   {flags: 'a'}
 );
 
+// --------- App Starts here --------- 
 // Create an instance of the express application
 const app = express();
 
@@ -34,100 +41,88 @@ app.use(
     stream: accessLogStream
   })
 );
+// --------- Logging Section Ends --------- 
+     
 
-let requestCounts = {};
-let bannedIPs = [];
-// Function to increment the request count for a given IP
-function increment_request_count(ip) {
-  return new Promise((resolve, reject) => {
-    // If the IP doesn't exist in the requestCounts object, add it with a value of 1
-    if (!requestCounts[ip]) {
-      requestCounts[ip] = 1;
-    } else {
-      // If the IP already exists, increment its value by 1
-      requestCounts[ip] += 1;
-    }
-    resolve();
-  });
+// --------- IP Blocking & Rate Section --------- 
+
+// Define a global object to hold banned IPs and their ban timestamps
+const bannedIPs = {};
+const requestCounts = {};
+
+// Function to ban an IP for 10 minutes
+function ban_ip(ip) {
+  bannedIPs[ip] = Date.now() + 10 * 60 * 1000;
 }
 
 // Function to check if an IP is banned
 function is_ip_banned(ip) {
-  return new Promise((resolve, reject) => {
-    // Check if the IP is in the bannedIPs array
-    if (bannedIPs.includes(ip)) {
-      resolve(true);
-    } else {
-      resolve(false);
-    }
-  });
+  const banTime = bannedIPs[ip];
+  return banTime && banTime > Date.now();
 }
 
-//Function to ban an IP
-function ban_ip(ip) {
-  return new Promise((resolve, reject) => {
-    // Add the IP to the bannedIPs array
-    bannedIPs.push(ip);
-    resolve();
-  });
-}
+// Middleware function to rate limit requests
+const limiter = (req, res, next) => {
+  const rateLimit = 10; // Maximum requests per IP in a given time frame
 
-// Add custom middleware for rate limiting
-const limiter = async (req, res, next) => {
-  // Maximum requests per IP in a given time frame
-  const rateLimit = 10;
-  // Time in milliseconds to ban an IP
-  const banTime = 10 * 60 * 1000;
+  // check for the clint IP for blocking and logging  
+  const ip = requestIp.getClientIp(req);
+  console.log(" -- Request client IP:"+ ip);
+  
+  // Check if the IP is banned
+  if (is_ip_banned(ip)) {
+    console.log(`IP ${ip} is banned`);
+    res.statusCode = 429; // Return error with status code 429 (Too Many Requests) if IP is banned
+    return res.end(`Too many requests from IP ${ip}`);
+  }
 
-  // Check if request has an array of IP addresses
-  if (!req.ips.length) req.ips = [req.ip];
+     
+  // Increment the request count for the IP
+  if (!requestCounts[ip]) {
+    requestCounts[ip] = 1;
+  } else {
+    requestCounts[ip] += 1;
+  }
 
-  // Loop through each IP in the request
-  for (const ip of req.ips) {
-    // Check if the IP is banned
-    const isBanned = await is_ip_banned(ip);
-    if (isBanned) {
-      console.log(`IP ${ip} is banned`);
-      // Return error with status code 429 (Too Many Requests) if IP is banned
-      res.statusCode = 429;
-      return res.end(`Too many requests from IP ${ip}`);
-    }
-
-    // Increment the request count for the IP
-    await increment_request_count(ip);
-    const count = requestCounts[ip];
-    if (count > rateLimit) {
-      console.log(`IP ${ip} exceeded the rate limit`);
-      // Ban the IP if request count exceeds rate limit
-      await ban_ip(ip);
-      // Return error with status code 429 (Too Many Requests) if IP exceeds rate limit
-      res.statusCode = 429;
-      return res.end(`Too many requests from IP ${ip}`);
-    }
+  // Ban the IP if request count exceeds rate limit
+  if (requestCounts[ip] > rateLimit) {
+    console.log(`IP ${ip} exceeded the rate limit`);
+    ban_ip(ip);
+    res.statusCode = 429; // Return error with status code 429 (Too Many Requests) if IP exceeds rate limit
+    return res.end(`Too many requests from IP ${ip}`);
   }
 
   // Call next middleware if IP is not banned and request count is within the rate limit
   next();
 };
 
+// Export the bannedIPs object so it can be used by other parts of the application
+module.exports.bannedIPs = bannedIPs;
+
 // Apply the rate-limiting middleware
 app.use(limiter);
 
+
+/// --------- IP Blocking & Rate Section Ends --------- 
+
+
+// --------- Directory Bruteforcing prevention And Database configuration Section --------- 
+
 // Custom middleware to prevent directory traversal attacks
-const sensitiveDirectories = [ "/pwd", "/secret", "/private", "/confidential", "/admin", "/root", "/config", "/backup", "/cli"];
+const publicDirectories = [ "/public", "/greeting", "/big", "/home", "/login"];
 
 app.use((req, res, next) => {
 // Normalize the requested path to prevent encoding attacks
 const path = decodeURIComponent(req.path).split('.')[0];
 console.log('path: ',path);
-// Check if the requested path is in the list of sensitive directories
-if (sensitiveDirectories.some(sensitiveDirectories => path.startsWith(sensitiveDirectories))) {
-// If it is, return a 401 Unauthorized status
+// Check if the requested path is in the list of public directories
+if (publicDirectories.some(publicDirectories => path.startsWith(publicDirectories))) {
+  // If it is, continue to the next middleware
+  next();
+} else {
+// If not, return a 401 Unauthorized status
 console.log('Unauthorized access attempt: ', req.method, req.originalUrl);
 res.status(401).send("401 Unauthorized");
-} else {
-// If not, continue to the next middleware
-next();
 }
 });
 
@@ -139,7 +134,7 @@ app.use((req, res, next) => {
   });
 });
 
-/* Define the database connection properties
+// Define the database connection properties
 const dbProperties = {
   connectionLimit: 10,  // Maximum number of connections to create in the pool
   host: process.env.DB_HOST,  // Hostname of the database server
@@ -168,31 +163,34 @@ password: Sequelize.STRING
 
 // Add a custom middleware to prevent SQL injections
 app.use((req, res, next) => {
-// Get the username and password from the request body
-const { username, password } = req.body;
+  // Check if username and password queries exist in req.query
+  if (req.query.username && req.query.password) {
+    // Use Sequelize to automatically escape any potentially dangerous input
+    User.findOne({
+      where: {
+        username: Sequelize.escape(req.query.username),
+        password: Sequelize.escape(req.query.password)
+      }
+    })
+      .then(user => {
+        // If the user was found in the database, call the next middleware
+        if (user) {
+          next();
+        } else {
+          // If the user was not found, return a 400 Bad Request response
+          res.status(400).send('Bad Request');
+        }
+      })
+      .catch(error => {
+        // If there was an error in the query, return a 500 Internal Server Error response
+        res.status(500).send(error.message);
+      });
+  } else {
+    // If username and password queries don't exist, call the next middleware
+    next();
+  }
+});
 
-// Use Sequelize to automatically escape any potentially dangerous input
-User.findOne({
-where: {
-username: Sequelize.escape(username),
-password: Sequelize.escape(password)
-}
-})
-.then(user => {
-// If the user was found in the database, call the next middleware
-if (user) {
-next();
-} else {
-// If the user was not found, return a 400 Bad Request response
-res.status(400).send('Bad Request');
-}
-})
-.catch(error => {
-// If there was an error in the query, return a 500 Internal Server Error response
-res.status(500).send(error.message);
-});
-});
-*/
 
 // Custom middleware to sanitize query parameters
 app.use((req, res, next) => {
@@ -208,11 +206,29 @@ console.log('Sanitized query parameters:', req.parametrizedQuery);
 next();
 });
 
+// --------- Directory Bruteforcing prevention And Database configuration Section Ends ---------
+
+
+
+// --------- App Starts here --------- 
+
 app.use((req,res)=>{
-  res.status(200).send("ok");
+
+// toggle below code based on your deployed environment
+
+  //code for cloud web server
+      //res.redirect('https://cyberv-webserver.onrender.com'+ request);// replace he url with the private server redirect.
+  
+  //code for Local
+     res.redirect('http://localhost:3002'+ req.url);
 });
 
-// Start the server and log a message to indicate that it's listening on port 3001
-const server = app.listen(3001, 'localhost', () => {
-  console.log("WAF listening on port 3001");
-});
+// toggle below code based on your deployed environment
+
+//code for cloud web server
+app.listen(port, () => console.log(`WAF server listening on port ${port}!`));
+
+// code for Local
+// const server = app.listen(3001, 'localhost', () => {
+//   console.log("WAF listening on port 3001");
+// });
