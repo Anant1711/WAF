@@ -1,27 +1,17 @@
 {
-  "name": "dummywebapp",
+  "name": "waf-main",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A firewall designed specifically to protect web applications from directory brute force attacks.",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
   "author": "ArT",
   "license": "ISC",
   "dependencies": {
     "ejs": "^3.1.8",
     "express": "^4.18.2",
-    "fs": "^0.0.1-security",
-    "helmet": "^6.0.1",
-    "http-proxy": "^1.18.1",
-    "http-proxy-middleware": "^2.0.6",
-    "morgan": "^1.10.0",
-    "mysql2": "^3.1.2",
-    "path": "^0.12.7",
-    "sequelize": "^6.28.0"
-  },
-  "devDependencies": {
-    "nodemon": "^2.0.20"
+    "path": "^0.12.7"
   }
 }
